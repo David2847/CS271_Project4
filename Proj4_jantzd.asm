@@ -10,22 +10,35 @@ TITLE Pascal Triangle Generator     (Proj4_jantzd.asm)
 
 INCLUDE Irvine32.inc
 
-; (insert macro definitions here)
-
 ; (insert constant definitions here)
 
 .data
 
-; (insert variable definitions here)
-
 .code
 main PROC
-
-; (insert executable instructions here)
+	CALL	introduction
+	CALL	displayInstructions
+	CALL	getUserInput ; todo: sub-procedure -- validate user input with while loop
+	CALL	printPascalTriangle ; nested procedures needed here!!
+	CALL	farewell
 
 	Invoke ExitProcess,0	; exit to operating system
 main ENDP
 
-; (insert additional procedures here)
+introduction PROC
+introduction ENDP
+
+displayInstructions PROC
+displayInstructions ENDP
+
+getUserInput PROC
+getUserInput ENDP
+
+printPascalTriangle PROC
+printPascalTriangle ENDP
+
+farewell PROC
+farewell ENDP
+
 
 END main
