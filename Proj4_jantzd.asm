@@ -21,13 +21,14 @@ MAX_ROWS = 13
 	goodbyeMessage		BYTE	"Thanks for playing! Have a fantabulous day.",13,10,0
 	userInput			SDWORD	?
 	isValidInput		BYTE	0	; starting assumption is that user input is not valid, flipped to 1 if it is valid
+	space				Byte	" ",0
 
 
 .code
 main PROC
 	CALL	introduction
-	CALL	getUserInput			; todo: sub-procedure -- validate user input with while loop
-	CALL	printPascalTriangle		; nested procedures needed here!!
+	CALL	getUserInput
+	CALL	printPascalTriangle
 	CALL	farewell
 
 	Invoke ExitProcess,0			; exit to operating system
@@ -107,16 +108,78 @@ validateInput PROC
 validateInput ENDP
 
 ; ------------------------------------------------------------
-; Name: 
-; Purpose: 
-; Preconditions: 
-; Postconditions: 
-; Receives: 
-; Returns: 
+; Name: printPascalTriangle
+; Purpose: To print the entire pascal triangle to the depth specified by the user.
+; Preconditions: user input must be collected and validated.
+; Postconditions: None
+; Receives: userInput
+; Returns: None (output is displayed to screen)
 ; ------------------------------------------------------------
 printPascalTriangle PROC
+	MOV		ECX, userInput
+	_PrintRowsLoop:
+		CALL	printPascalRow
+		LOOP	_printRowsLoop
 	RET
 printPascalTriangle ENDP
+
+; ------------------------------------------------------------
+; Name: printPascalRow
+; Purpose: to display one row of pascal triangle to the console.
+; Preconditions: must be called within the context of a larger for loop
+;					that is decrementing ECX. That tells us which
+;					row we are currently on and thus how many numbers
+;					to calculate and print. userInput must also be available
+;					to perform subtraction with ECX.
+; Postconditions: None
+; Receives: userInput, ECX
+; Returns: None (output displayed to console)
+; ------------------------------------------------------------
+printPascalRow PROC
+	PUSH	ECX						; preserve ECX value for outer loop to continue
+	MOV		EAX, userInput
+	SUB		EAX, ECX				; subtract outer loop value and userinput, then add one to get row number
+	INC		EAX
+	MOV		ECX, EAX				; EAX and ECX both now hold the number of pascal values to calculate (the row number)
+	MOV		EBX, EAX
+	DEC		EBX						; EBX holds "n" as an input parameter for nChooseK (the row number minus 1)
+	SUB		EAX, ECX				; EAX used as input parameter "k". To calculate, subtracted ECX from the row number (still held in EAX)
+	_printValuesLoop:
+		CALL	nChooseK
+		CALL	WriteDec			; output parameter from nChooseK is unsigned integer value, stored in EAX
+		MOV		EDX, OFFSET space
+		CALL	WriteString
+		INC		EAX					; increment k in preparation for next loop
+		LOOP	_printValuesLoop
+	CALL	CrLf
+	POP		ECX
+	RET
+printPascalRow ENDP
+
+; ------------------------------------------------------------
+; Name: nChooseK
+; Purpose: To calculate the value at a given location in a Pascal triangle.
+; Preconditions: None
+; Postconditions: None
+; Receives: EBX holds the value of "n" and EAX holds the value of "k"
+;				according to the common parlance of "n choose k"
+; Returns: EAX with unsigned value
+; ------------------------------------------------------------
+nChooseK PROC
+	; preserve registers?
+	
+	; multiplicative formula: chop up the factorial into individual fractions. Example: 10 choose 4
+	;	10 / 1 = 10
+	;	10 * 9 / 2 = 45
+	;	45 * 8 / 3 = 120
+	;	120 * 7 / 4 = 210
+
+	; to implement:
+	;	
+
+	; restore registers if needed
+	RET
+nChooseK ENDP
 
 ; ------------------------------------------------------------
 ; Name: farewell
