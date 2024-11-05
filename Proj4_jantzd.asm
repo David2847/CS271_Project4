@@ -11,18 +11,19 @@ TITLE Pascal Triangle Generator     (Proj4_jantzd.asm)
 INCLUDE Irvine32.inc
 
 MIN_ROWS = 1
-MAX_ROWS = 13
+MAX_ROWS = 20
 
 .data
 
 	introduction1		BYTE	"Pascal's Triangle Generator -- created by David Jantz",13,10,0
 	introduction2		BYTE	"This program will generate a Pascal's Triangle at the row depth you specify!",13,10,0
-	instructions		BYTE	"Enter an integer from 1 to 13, inclusive. Then sit back and watch the magic unfold.", 13,10,0
+	extraCredit2		BYTE	"**EC: This program prints up to 20 rows.",13,10,0
+	instructions		BYTE	"Enter an integer from 1 to 20, inclusive. Then sit back and watch the magic unfold.", 13,10,0
+	errorMessage		BYTE	"Dude. Pick an integer from 1 to 20. This is like kindergarten level difficulty.",13,10,0
 	goodbyeMessage		BYTE	"Thanks for playing! Have a fantabulous day.",13,10,0
 	userInput			SDWORD	?
 	isValidInput		BYTE	0	; starting assumption is that user input is not valid, flipped to 1 if it is valid
 	space				Byte	" ",0
-
 
 .code
 main PROC
@@ -46,6 +47,8 @@ introduction PROC
 	MOV		EDX, OFFSET introduction1
 	CALL	WriteString
 	MOV		EDX, OFFSET introduction2
+	CALL	WriteString
+	MOV		EDX, OFFSET extraCredit2
 	CALL	WriteString
 	CALL	CrLf
 	RET
@@ -74,14 +77,18 @@ displayInstructions ENDP
 ; Returns: userInput with an integer validated to be in the correct range.
 ; ------------------------------------------------------------
 getUserInput PROC
+	CALL	displayInstructions
 	_InputLoop:
-		CALL	displayInstructions
 		CALL	ReadInt
 		MOV		userInput, EAX
 		CALL	validateInput
 		CMP		isValidInput, 1
-		JNE		_InputLoop
-	RET
+		JE		_EndInput
+		MOV		EDX, OFFSET errorMessage	; display error message for bad input
+		CALL	WriteString
+		JMP		_InputLoop
+	_EndInput:
+		RET
 getUserInput ENDP
 
 ; ------------------------------------------------------------
@@ -94,11 +101,11 @@ getUserInput ENDP
 ; ------------------------------------------------------------
 validateInput PROC
 	PUSH	EAX
-	CMP		userInput, MIN_ROWS		; compare to zero
-	JL		_InvalidInput			; if less than zero, set isValid to zero, jump to end of this procedure and return
-	CMP		userInput, MAX_ROWS		; compare to 13
-	JG		_InvalidInput			; if greater than 13, set isValid to zero, jump to end of this procedure and return
-	MOV		isValidInput, 1 		; set isvalid to 1, it has to be in valid range
+	CMP		userInput, MIN_ROWS				; compare to zero
+	JL		_InvalidInput					; if less than zero, set isValid to zero, jump to end of this procedure and return
+	CMP		userInput, MAX_ROWS				; compare to 13
+	JG		_InvalidInput					; if greater than 13, set isValid to zero, jump to end of this procedure and return
+	MOV		isValidInput, 1 				; set isvalid to 1, it has to be in valid range
 	JMP		_End
 	_InvalidInput:
 		MOV		isValidInput, 0
@@ -116,6 +123,7 @@ validateInput ENDP
 ; Returns: None (output is displayed to screen)
 ; ------------------------------------------------------------
 printPascalTriangle PROC
+	CALL	CrLf
 	MOV		ECX, userInput
 	_PrintRowsLoop:
 		CALL	printPascalRow
@@ -136,20 +144,19 @@ printPascalTriangle ENDP
 ; Returns: None (output displayed to console)
 ; ------------------------------------------------------------
 printPascalRow PROC
-	PUSH	ECX						; preserve ECX value for outer loop to continue
+	PUSH	ECX								; preserve ECX value for outer loop to continue
 	MOV		EAX, userInput
-	SUB		EAX, ECX				; subtract outer loop value and userinput, then add one to get row number
+	SUB		EAX, ECX						; subtract outer loop value and userinput, then add one to get row number
 	INC		EAX
-	MOV		ECX, EAX				; EAX and ECX both now hold the number of pascal values to calculate (the row number)
+	MOV		ECX, EAX						; EAX and ECX both now hold the number of pascal values to calculate (the row number)
 	MOV		EBX, EAX
-	DEC		EBX						; EBX holds "n" as an input parameter for nChooseK (the row number minus 1)
-	SUB		EAX, ECX				; EAX used as input parameter "k". To calculate, subtracted ECX from the row number (still held in EAX)
+	DEC		EBX								; EBX holds "n" as an input parameter for nChooseK (the row number minus 1)
+	SUB		EAX, ECX						; EAX used as input parameter "k". To calculate, subtracted ECX from the row number (still held in EAX)
 	_printValuesLoop:
 		CALL	nChooseK
-		CALL	WriteDec			; output parameter from nChooseK is unsigned integer value, stored in EAX
 		MOV		EDX, OFFSET space
 		CALL	WriteString
-		INC		EAX					; increment k in preparation for next loop
+		INC		EAX							; increment k in preparation for next loop
 		LOOP	_printValuesLoop
 	CALL	CrLf
 	POP		ECX
@@ -163,21 +170,38 @@ printPascalRow ENDP
 ; Postconditions: None
 ; Receives: EBX holds the value of "n" and EAX holds the value of "k"
 ;				according to the common parlance of "n choose k"
-; Returns: EAX with unsigned value
+; Returns: None (displays value to console inside procedure)
 ; ------------------------------------------------------------
 nChooseK PROC
-	; preserve registers?
-	
-	; multiplicative formula: chop up the factorial into individual fractions. Example: 10 choose 4
-	;	10 / 1 = 10
+	PUSH	EAX
+	PUSH	EBX
+	PUSH	ECX
+	; --------------------------------------------------------
+	; multiplicative formula: chop up the factorial into individual fractions. Example: 10 choose 4:
+	;	1 * 10 / 1 = 10
 	;	10 * 9 / 2 = 45
 	;	45 * 8 / 3 = 120
 	;	120 * 7 / 4 = 210
+	; --------------------------------------------------------
+	MOV		ESI, EAX						; move value of k from EAX into ESI so EAX can be the multiplier
+	MOV		EAX, 1							; multiplier EAX gets value of 1 to start
+	MOV		ECX, 1							; ECX gets value of 1 (will be divisor)
+	; edge case: When k == 0, output is 1, so just skip the loop
+	CMP		ESI, 0
+	JE		_KIsZeroEdgeCase
+	_NChooseKLoop:
+		MUL		EBX							; multiplier (EAX) *= n (now stored in EDX:EAX)
+		DIV		ECX							; multiplier /= divisor (now stored in EAX)
+		DEC		EBX							; decrement n
+		INC		ECX							; increment divisor
+		CMP		ECX, ESI					; if divisor <= k, restart loop
+		JLE		_NChooseKLoop
+	_KIsZeroEdgeCase:
 
-	; to implement:
-	;	
-
-	; restore registers if needed
+	CALL	WriteDec						; not specific to zero edge case, so it is not indented
+	POP		ECX
+	POP		EBX
+	POP		EAX
 	RET
 nChooseK ENDP
 
@@ -195,6 +219,5 @@ farewell PROC
 	CALL	WriteString
 	RET
 farewell ENDP
-
 
 END main
